@@ -1,0 +1,87 @@
+﻿@model LineaUno.App.Web.Bus.PortalSMC.Model.Request.UsuarioAutenticacionRequest
+
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Acceso</title>
+
+    <environment include="Development">
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+              asp-fallback-href="~/lib/bootstrap/dist/css/bootstrap.min.css"
+              asp-fallback-test-class="sr-only" asp-fallback-test-property="position" asp-fallback-test-value="absolute"
+              crossorigin="anonymous"
+              integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" />
+    </environment>
+    <environment exclude="Development">
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+              asp-fallback-href="~/lib/bootstrap/dist/css/bootstrap.min.css"
+              asp-fallback-test-class="sr-only" asp-fallback-test-property="position" asp-fallback-test-value="absolute"
+              crossorigin="anonymous"
+              integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" />
+    </environment>
+    <!-- Custom fonts for this page -->
+    <link href="~/css/plugins/fontawesome/css/all.min.css" rel="stylesheet" type="text/css">
+    <!-- Own Custom Style -->
+    <link rel="stylesheet" href="~/css/site.css" />
+</head>
+<body>
+    <div class="contenedor-principal-login container-fluid">
+        <div class="row d-flex justify-content-center align-items-center h-100">
+            <div class="card col-9 col-md-8 col-lg-5 col-xl-4">
+                <div class="card-body my-3 my-md-5">
+                    <div class="mb-4 d-flex justify-content-center row">
+                        <div class="col-6 col-md-4">
+                            <img src="~/img/Logo.png" class="img-fluid" />
+                        </div>
+                    </div>
+                    @using (Html.BeginForm("Login", "Seguridad", FormMethod.Post, new { id = "form-login" }))
+                    {
+                        <div class="row d-flex justify-content-center">
+                            <div class="input-group m-0 mb-2 col-12 col-md-9">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fas fa-user-tie"></i>
+                                    </div>
+                                </div>
+                                @Html.TextBoxFor(model => model.Usuario, new { maxlength = 100, placeholder = "Ingrese usuario", @class = "form-control" })
+                            </div>
+                            <div class="row d-flex justify-content-center">
+                                @Html.ValidationMessageFor(model => model.Usuario, "", new { @class = "text-danger col-12" })
+                            </div>
+                        </div>
+                        <div class="row d-flex justify-content-center">
+                            <div class="input-group m-0 mb-4 col-12 col-md-9">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fas fa-key"></i>
+                                    </div>
+                                </div>
+                                @Html.PasswordFor(model => model.Contrasena, new { maxlength = 100, placeholder = "Ingrese contraseña", @class = "form-control" })
+                            </div>
+                            <div class="row d-flex justify-content-center">
+                                @Html.ValidationMessageFor(model => model.Contrasena, "", new { @class = "text-danger col-12" })
+                            </div>
+                        </div>
+                        <div class="row d-flex justify-content-center">
+                            <div class="col-12 col-md-9">
+                                <button type="submit" class="btn btn-block btn-success">Ingresar</button>
+                            </div>
+                        </div>
+                        @Html.ValidationMessageFor(model => model.ErrorMensaje, "", new { @class = "text-danger col-12 d-block px-0 pt-3" })
+                        <div class="d-flex justify-content-end mt-5">Powered by <img src="~/img/logo-qualis.png" alt="QUALIS"></div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+
+

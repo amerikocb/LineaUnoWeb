@@ -1,0 +1,1233 @@
+﻿
+@model LineaUno.App.Web.Bus.PortalSMC.PedidosTrabajo
+
+@{
+    ViewData["Title"] = "PedidosTrabajo";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+@using LineaUno.App.Web.Bus.PortalSMC.Model.Response
+@using Microsoft.AspNetCore.Http
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
+
+@{
+
+    IEnumerable<ParametroValorResponse> categorias = ViewData["Categorias"] as IEnumerable<ParametroValorResponse>;
+}
+
+<div class="w3-row">
+    <div class="w3-col w3-container" style="vertical-align:middle;width:100%;height:35px;color: #fff!important;background-color: #3A8C3A!important;font: bold 16px Arial Narrow,Helvetica;">
+        <p style="text-align: left;margin-bottom: 0rem;color: #DADBD7;font: bold 7px Arial Narrow,Helvetica;">&nbsp</p>
+        <p>&nbspBANDEJA DE PEDIDOS DE TRABAJO</p>
+        <p style="text-align: left;margin-bottom: 0rem;color: #DADBD7;font: bold 5px Arial Narrow,Helvetica;">&nbsp</p>
+    </div>
+</div>
+
+@(Html.DevExtreme().DataGrid<PedidoTrabajoBResponse>()
+                                .ElementAttr(new { @class = "dx-card wide-card" })
+                                .ID("pt_grid")
+                                .DataSource(d => d.Mvc().Controller("Actividad").LoadAction("BusquedaPedidosTrabajo_Bandeja").Key("PT"))
+                                .ShowBorders(true)
+                                .ShowColumnLines(true)
+                                .ShowRowLines(true)
+                                .WordWrapEnabled(true)
+                                .FilterRow(f => f.Visible(true))
+                                .ColumnAutoWidth(true)
+                                .ColumnHidingEnabled(true)
+                                .OnCellPrepared(@<text>function OncellPrepared(e) {
+                                        if (e.rowType !== "data")
+                                        return
+                                        if (e.column.dataField === "PT") {
+                                        if (e.data.PT === "655509") {
+                                        var fieldData = e.value,
+                                        fieldHtml = "";
+                                        e.cellElement.addClass("pt-i");
+                                        fieldHtml += "<div class='current-value'>" + fieldData + "</div> <div class='icon-pt'></div>";
+                                        e.cellElement.html(fieldHtml);
+                                        }
+                                        }
+                                        if (e.data.PT.substring(0, 3) === "GYM") {
+                                        e.cellElement.css("background-color","#626961");
+                                        e.cellElement.css("color","white");
+                                        }
+                                        else
+                                        {
+                                        e.cellElement.css("background-color","#9B9F9B");
+                                        }
+                                        }</text>)
+.Columns(columns =>
+{
+columns.AddFor(m => m.PT).Width(150);
+columns.AddFor(m => m.Descripcion).Width(450).Caption("DESCRIPCIÓN");
+columns.AddFor(m => m.Zona).Width(130).Caption("ZONA");
+columns.AddFor(m => m.FechaHora).Format("dd/MM/yyyy HH:mm").Caption("FECHA Y HORA");
+columns.Add()
+.Type(GridCommandColumnType.Buttons)
+.Width(110)
+.Caption("ACCIONES")
+.Buttons(btns =>
+{
+btns.Add()
+.Text("Iniciar")
+.Icon("../img/PLAY20px.png")
+.Hint("Iniciar/Reiniciar")
+.OnClick(@<text>
+                            function showInfo(data) {
+                            if(data !== null) {
+                            dataRow = data.row.data;
+                            if(dataRow.EstadoPT === 'P' || dataRow.EstadoPT === 'I'){
+                            var popup = $("#start-restart-popup").dxPopup("instance");
+                            popup.option("contentTemplate", $("#popup-template-"));
+                            popup.show();
+                            }
+                            else {
+                            DevExpress.ui.notify('Solo se puede iniciar un trabajo pendiente o con incidencia', 'error', 2000);
+                            }
+                            }
+                            }</text>);
+btns.Add()
+.Text("Finalizar")
+.Icon("../img/stop20px.png")
+.Hint("Finalizar")
+.OnClick(@<text>
+    function showInfo(data) {
+    if(data !== null) {
+    dataRow = data.row.data;
+    if(dataRow.EstadoPT === 'E'){
+    var popup = $("#finalizar-popup").dxPopup("instance");
+    popup.option("contentTemplate", $("#popup-template-f"));
+    popup.show();
+    }
+    else {
+    DevExpress.ui.notify('Solo se puede finalizar un pedido de trabajo en proceso', 'error', 2000, 'top');
+    }
+    }
+    }</text>);
+btns.Add()
+.Text("Registrar Inconveniente")
+.Icon("../img/PAUSE20px.png")
+.Hint("Registrar Incidente")
+.OnClick(@<text>
+    function showInfo(data) {
+    if(data !== null) {
+    dataRow = data.row.data;
+    if(dataRow.EstadoPT !== 'E')
+    DevExpress.ui.notify('Solo se puede registrar una incidencia para un trabajo en proceso', 'error', 2000);
+    else {
+    var popup = $("#categorias-popup").dxPopup("instance");
+    popup.option("contentTemplate", $("#popup-cat-template"));
+    popup.show();
+    }
+    }
+    }
+</text>);
+});
+
+})
+.Paging(p => p.PageSize(5))
+.Pager(p => p
+.ShowPageSizeSelector(true)
+.InfoText("Pagina {0} de {1} ({2} Registros)")
+.AllowedPageSizes(new[] { 5, 10, 20 })
+.ShowInfo(true)
+)
+)
+
+@* INICIAR PEDIDO DE TRABAJO *@
+@*Popup Iniciar/Reanudar*@
+
+@(Html.DevExtreme().Popup()
+                .ID("start-restart-popup")
+                .Width(500)
+                .Height(300)
+                .ShowTitle(true)
+                .Title("INICIAR PEDIDO DE TRABAJO")
+                .Visible(false)
+                .DragEnabled(false)
+                .CloseOnOutsideClick(false)
+                .OnShown("SetValuesInPopupControls")
+
+)
+
+@using (Html.DevExtreme().NamedTemplate("popup-template-"))
+{
+
+    @using (Html.BeginForm("IniciarPedidoTrabajo", "Actividad", FormMethod.Post, new { id = "form-inicioTrabajo-accion" }))
+    {
+        @(Html.DevExtreme().TextBoxFor(m => m.MovimientoEstadoPT.iNumIdPT)
+                                                                                .ID("IdPT")
+                                                                                .Visible(false)
+        )
+        @(Html.DevExtreme().TextBoxFor(m => m.MovimientoEstadoPT.iNumDetPT)
+                                                                                .ID("IdDetPT")
+                                                                                .Visible(false)
+        )
+        @(Html.DevExtreme().TextBoxFor(m => m.MovimientoEstadoPT.iNumDetEstPT)
+                                                                                .ID("IdDetEstPT")
+                                                                                .Visible(false)
+                                                                                .Value("2")
+        )
+        @(Html.DevExtreme().TextBoxFor(m => m.MovimientoEstadoPT.Opcion)
+                                                                                .ID("Opcion")
+                                                                                .Visible(false)
+        )
+
+
+        <div class="form">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-7" style="background: #9B9F9B;">
+                        <div class="row">
+                            <div class="col-12" style="padding-top: 20px;height:50px">
+                                <div class="dx-field">
+                                    <div class="col-2" style="max-width:60%;text-align: left;color: black;font: bold 13px Arial Narrow,Helvetica;padding-left: 0px;padding-right: 0px;">
+                                        <p style="width:120px;">PEDIDO DE TRABAJO:</p>
+                                    </div>
+                                    <div class="dx-field-value col-5" style="max-width:60%;text-align: left;background: #9B9F9B;font: bold 13px Arial Narrow,Helvetica;padding-left: 0px;padding-right: 0px;">
+                                        @(Html.DevExtreme().TextBox()
+                                                                                                                            .Value(@HttpContextAccessor.HttpContext.Session.GetString("UserName1"))
+                                                                                                                            .ID("txtDesc")
+                                                                                                                            .Width("100%")
+                                                                                                                            .Height("50%")
+                                                                                                                            .StylingMode(EditorStylingMode.Underlined)
+                                                                                                                            .Disabled(true)
+                                        )
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12" style="height:30px">
+                                <div class="dx-field">
+                                    <div class="col-2" style="max-width:50%;text-align: left;color: black;font: bold 13px Arial Narrow,Helvetica;padding-left: 0px;padding-right: 0px;">
+                                        <p style="width:55px;">NOMBRE:</p>
+                                    </div>
+                                    <div class="dx-field-value col-10" style="max-width:82%;text-align: left;background: #9B9F9B;font: bold 13px Arial Narrow,Helvetica;padding-left: 0px;padding-right: 0px;">
+                                        @(Html.DevExtreme().TextBoxFor(m => m.MovimientoEstadoPT.vCodUsuarioCreacion)
+                                                                                .Value(@HttpContextAccessor.HttpContext.Session.GetString("UserName1"))
+                                                                                .Width("100%")
+                                                                                .Height("50%")
+                                                                                .StylingMode(EditorStylingMode.Underlined)
+                                                                                .Disabled(true)
+                                        )
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="dx-field">
+                                    <div class="col-2" style="max-width:45%;text-align: left;color: black;font: bold 13px Arial Narrow,Helvetica;padding-left: 0px;padding-right: 0px;">
+                                        <p style="width:50px;">TURNO:</p>
+                                    </div>
+                                    <div class="dx-field-value col-4" style="max-width:32%;text-align: left;background: #9B9F9B;font: bold 13px Arial Narrow,Helvetica;padding-left: 0px;padding-right: 0px;">
+                                        @(Html.DevExtreme().TextBox()
+                                                                        .Value("1")
+                                                                        .Width("100%")
+                                                                        .Height("40%")
+                                                                        .StylingMode(EditorStylingMode.Underlined)
+                                                                        .Disabled(true)
+                                        )
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row" style="background: #DADBD7;">&nbsp</div>
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="dx-field">
+                                    <div class="col-2" style="max-width:70%;text-align: left;color: black;font: bold 13px Arial Narrow,Helvetica;padding-left: 0px;padding-right: 0px;padding-top:10px;">
+                                        <p style="width:140px;">NUMERO DE TECNICOS:</p>
+                                    </div>
+                                    <div class="col-3" style="width:25%;text-align: left;padding-top:10px;">
+                                        <p style="text-align: center;background: white;">1</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="dx-field">
+                                    <div class="col-2" style="max-width:70%;text-align: left;color: black;font: bold 13px Arial Narrow,Helvetica;padding-left: 0px;padding-right: 0px;">
+                                        <p style="width:140px;">CANTIDAD DE TECNICOS <br>ESPECIALISTAS:</p>
+                                    </div>
+                                    <div class="col-3" style="width:25%;text-align: left;">
+                                        <p style="text-align: center;background: white;">1</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-5">
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="col-3" style="max-width:100%;height:20px;text-align: center;color: white;background: black;font: bold 13px Arial Narrow,Helvetica;padding-left: 15px;padding-right: 15px;">
+                                    FECHA Y HORA
+                                </div>
+                                <div class="dx-field-value col-4" style="max-width:100%;text-align: left;color:black;font: bold 13px Arial Narrow,Helvetica;padding-left: 30px;padding-right: 0px;">
+                                    @(Html.DevExtreme().DateBox()
+                                                                .Width("100%")
+                                                                .Value(DateTime.Now)
+                                                                .DisplayFormat("dd/MM/yyyy HH:mm")
+                                                                .ReadOnly(true)
+                                                                .StylingMode(EditorStylingMode.Underlined)
+                                                                .Disabled(true)
+                                    )
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="col-12">
+                                    @(Html.DevExtreme().Button()
+                                                                .ID("btn-start-r")
+                                                                .Width("100%")
+                                                                .Height("100%")
+                                                                .Icon(Url.Content("~/img/PLAY.png"))
+                                                                .UseSubmitBehavior(true)
+                                                                .Type(ButtonType.Success)
+
+                                    )
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    }
+}
+
+@if (ViewBag.MensajeExito != null)
+{
+    <script type="text/javascript">
+            // var valtext = $("#NumCarga").val()
+               window.onload = function () {
+                   var valtext = $("#NumCarga").val()
+                    Swal.fire({
+                        title: 'Exito',
+                        text: '@ViewBag.MensajeExito',
+                        icon: 'success',
+                        showCancelButton: false,
+                        confirmButtonText: 'Ok'
+                    }).then((result) => {
+                        if (result.value) {
+
+                        }
+                    })
+                };
+    </script>
+}
+
+@if (ViewBag.MensajeError != null)
+{
+    <script type="text/javascript">
+                window.onload = function () {
+                    Swal.fire({
+                        title: 'Error',
+                        text: '@ViewBag.MensajeError',
+                        icon: 'error',
+                        showCancelButton: false,
+                        confirmButtonText: 'Ok'
+                    })
+                };
+    </script>
+}
+
+<style type="text/css">
+
+    .dx-list-select-all-label::after {
+        visibility: visible;
+        position: absolute;
+        top: 0;
+        left: 0;
+        content: "Seleccionar Todo";
+        margin-left: 20px;
+    }
+
+    .dx-list-select-all-label {
+        visibility: hidden;
+        position: relative;
+        width: 100%;
+    }
+
+    .dx-field-value:not(.dx-switch):not(.dx-checkbox):not(.dx-button), .dx-field-value-static {
+        width: 100%
+    }
+
+    .dx-texteditor.dx-editor-underlined.dx-state-disabled:after, .dx-texteditor.dx-editor-underlined.dx-state-readonly:after, .dx-texteditor.dx-editor-underlined.dx-state-readonly.dx-state-hover:after {
+        border-bottom-style: dotted;
+        border-bottom-width: 0px;
+    }
+
+    .dx-state-disabled .dx-texteditor-input {
+        color: #000000 !important;
+        font-family: 'Arial Narrow';
+        font-weight: bold;
+        font-size: 15px !important;
+    }
+
+    div#btn-start-r .dx-icon {
+        width: 130px !important;
+        height: 130px !important;
+        /*font-size: 90px;*/
+    }
+
+    div#btn-start-r .dx-button-content {
+        padding: 0px !important;
+        background: #DADBD7 !important;
+    }
+
+    div#btn-start-r .dx-button-has-icon {
+        height: 32px !important;
+    }
+
+    div#btn-f-r .dx-icon {
+        width: 130px !important;
+        height: 130px !important;
+        /*font-size: 90px;*/
+    }
+
+    div#btn-f-r .dx-button-content {
+        padding: 0px !important;
+        background: #DADBD7 !important;
+    }
+
+    .dx-toolbar {
+        /*width: 100% !important;*/
+        height: 40px !important;
+    }
+
+    .dx-toolbar-item-content {
+        height: 100% !important;
+        padding-top: 4px !important;
+    }
+
+
+    #pt_grid .current-value {
+        display: inline-block;
+    }
+
+        #pt_grid .current-value .pt-i {
+            display: inline-block;
+        }
+
+    #pt_grid .icon-pt {
+        position: relative;
+        font-size: 16px;
+    }
+
+    #pt_grid .pt-i .icon-pt:after {
+        content: '';
+        display: block;
+        height: 20px;
+        width: 20px;
+        position: absolute;
+        right: -12px;
+        top: -20px;
+        background-repeat: no-repeat;
+        background-size: 20px 20px;
+    }
+
+    #pt_grid td {
+        vertical-align: middle;
+    }
+
+    #pt_grid .pt-i .icon-pt:after {
+        background-image: url('../img/alertqt2.png')
+    }
+
+    /*CATEGORIAS DE INCONVENIENTE*/
+    .catInc {
+        display: inline-table;
+        margin-right: 5px;
+        margin-bottom: 3px;
+    }
+
+    .catInc1 {
+        display: inline-table;
+        margin-right: 5px;
+        margin-bottom: 3px;
+    }
+
+    .contCateg {
+        padding: 3px;
+        max-height: 150px;
+        overflow: auto;
+    }
+
+    .contCateg1 {
+        padding: 3px;
+        overflow: auto;
+    }
+
+    .catInc .dx-button .dx-icon {
+        width: 28px;
+        height: 28px;
+    }
+
+    .catInc1 .dx-button .dx-icon {
+        width: 82px;
+        height: 82px;
+        /*padding: 0px !important;*/
+    }
+
+    .catInc1 .dx-button-content:hover {
+        background-color: #19a9d0;
+    }
+
+    .catInc .dx-button-content {
+        padding: 0px !important;
+    }
+
+    .catInc1 .dx-button-content {
+        padding: 0px !important;
+    }
+
+    .etiqueta {
+        text-align: left;
+        color: black;
+        font: bold 13px Arial Narrow,Helvetica;
+        padding-left: 0px;
+        padding-right: 0px;
+    }
+
+    .controlField {
+        max-width: 100%;
+        text-align: left;
+        color: black;
+        font: bold 13px Arial Narrow,Helvetica;
+        padding-left: 30px;
+        padding-right: 0px;
+    }
+
+    #simpleList .dx-list-select-all-label {
+        font-size: 13px;
+        padding: 0 !important;
+        /* font-family: arial-narrow; */
+    }
+
+    div#simpleList .dx-list-select-all {
+        padding: 4px 0;
+    }
+
+    div#simpleList .dx-list-select-all-checkbox {
+        margin: 0px !important;
+    }
+
+    .dx-list-item-before-bag .dx-list-select-checkbox {
+        margin-left: 0px !important;
+    }
+
+    .dx-list-item-before-bag.dx-list-select-checkbox-container {
+        width: 37px !important;
+    }
+
+    .dx-list-item-content {
+        font-size: 13px;
+        padding: 6px 0px 6px;
+    }
+
+    .dx-fileuploader-container .dx-button {
+        font-size: 9px;
+        padding: 0px;
+        background-color: #006633;
+        color: #fff;
+    }
+
+    .dx-fileuploader-input-wrapper {
+        padding: 0;
+    }
+
+    .dx-fileuploader-container.dx-button-has-text.dx-button-content {
+        padding: 6px 16px;
+    }
+
+    .dx-fileuploader-wrapper {
+        padding: 0px;
+    }
+
+    .control-container {
+        padding-left: 0px !important;
+    }
+
+    .dx-fileuploader-show-file-list .dx-fileuploader-files-container {
+        padding: 1px 3px 0;
+        max-height: 120px !important;
+        overflow: auto;
+    }
+
+    .w-pad {
+        padding-right: 0px !important;
+    }
+</style>
+
+@* REGISTRAR INCONVENIENTE *@
+
+@(Html.DevExtreme().Popup()
+                        .ID("inconven-popup")
+                        .Width(600)
+                        .Height(520)
+                        .ShowTitle(true)
+                        .Title("Registro de Inconveniente")
+                        .Visible(false)
+                        .DragEnabled(false)
+                        .CloseOnOutsideClick(false)
+                        .OnShown("SetValuesInPopupInconvControls")
+
+)
+
+@using (Html.DevExtreme().NamedTemplate("popup-inc-template"))
+{
+    @*@(Html.DevExtreme().ScrollView()
+                    .ScrollByContent(true)
+                    .ShowScrollbar(ShowScrollbarMode.OnHover)
+                    .Width("100%")
+                    .Height("100%")
+                    .Content(@<text>
+
+
+                    </text>)
+        )*@
+
+    @using (Html.BeginForm("RegistrarInconvPT", "Actividad", FormMethod.Post, new { enctype = "multipart/form-data" }))
+    {
+
+        <div class="form">
+            <div class="row">
+                <div class="col-12">
+                    <div class="dx-field">
+                        <div class="col-3 etiqueta w-pad" style="align-self:center;"><label>Pedido de Trabajo:</label></div>
+                        <div class="dx-field-value col-9 controlField w-pad" style="padding-left:0px !important">
+                            @(Html.DevExtreme().TextBoxFor(m => m.MovimientoBanPT.PedidoTrabajo)
+                                                      .ID("txtDescPT")
+                                                      .Width("100%")
+                                                      .Height("50%")
+                                                      .Disabled(true)
+                                                      .StylingMode(EditorStylingMode.Underlined)
+                            )
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-12">
+                    <div class="dx-field">
+                        <div class="col-3 etiqueta w-pad" style="align-self:center;"><label>Nombre:</label></div>
+                        <div class="dx-field-value col-9 controlField w-pad" style="padding-left:0px !important">
+                            @(Html.DevExtreme().TextBox()
+                                                      .ID("txtNomTra")
+                                                      .Width("100%")
+                                                      .Height("50%")
+                                                      .Disabled(true)
+                                                      .StylingMode(EditorStylingMode.Underlined)
+                            )
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-5 w-pad">
+                    <div class="col-12 etiqueta" style="align-self:center;"><label>Categorías de Inconveniente:</label></div>
+                    <div class="col-12 control-container">
+                        <div class="contCateg">
+                            @{
+                                int loop = 1; }
+                            @foreach (var cat in categorias)
+                            {
+                                <div class="catInc">
+                                    @(Html.DevExtreme().Button()
+                                       .ID("btn_" + cat.Id.ToString())
+                                       .Width(30)
+                                       .Icon("../categorias/mainboton__" + loop + ".png")
+                                       .Hint(cat.Descripcion)
+                                       .Disabled(true)
+                                    )
+                                </div>
+                                loop += 1;
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="col-7 w-pad" style="padding-left:0px !important">
+                    <div class="col-12 etiqueta" style="align-self:center;"><label>Motivos de Inconveniente - </label><label id="nomCat"></label></div>
+                    <div class="col-12 control-container">
+                        @(Html.DevExtreme().List()
+                                             .ID("simpleList")
+                                             .ShowSelectionControls(true)
+                                             .IndicateLoading(true)
+                                             .SelectionMode(ListSelectionMode.All)
+                                             .Width("100%")
+                                             .Height(140)
+                                             .ItemTemplate("<%- Descripcion %>")
+                                     .DataSource(d =>
+                                                  d.Mvc()
+                                                  .Controller("Actividad")
+                                                  .LoadAction("ObtenerListaMotivos_x_Categoria")
+                                                  .Key("Id")
+                                                  .LoadParams(new { idCategoria = new JS("getIdCategoria") })
+                                      )
+                                     .OnSelectionChanged("SelectItems")
+                                     .OnPullRefresh("disposeList")
+                                     .OnContentReady("fillEnd")
+                        )
+
+                        @(Html.DevExtreme().TextBoxFor(m => m.MovimientoBanPT.VDescInconveniente)
+                                                 .ID("txtDescInc")
+                                                 .Width("100%")
+                                                 .StylingMode(EditorStylingMode.Underlined)
+                                                 .Placeholder("Escriba un motivo")
+                        )
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-5 w-pad">
+                    <div class="col-12 etiqueta" style="align-self:center;"><label>Mensaje para supervisor (opcional):</label></div>
+
+                    <div class="dx-field-value col-12 control-container">
+                        @(Html.DevExtreme().TextAreaFor(m => m.MovimientoBanPT.Mensaje)
+                                                 .ID("txtMessage")
+                                                 .Width("100%")
+                                                 .Height(150)
+                                                 .StylingMode(EditorStylingMode.Outlined)
+                        )
+                    </div>
+                </div>
+                <div class="col-7 w-pad" style="padding-left:0px !important">
+                    <div class="col-12 etiqueta" style="align-self:center;"><label>Adjunto:</label></div>
+                    <div class="dx-field-value col-12 control-container">
+                        @(Html.DevExtreme().FileUploader()
+                                                .ID("uAdjunto")
+                                                .SelectButtonText("Seleccionar Archivo")
+                                                .ReadyToUploadMessage("Listo para subir")
+                                                .Name("attachFiles")
+                                                .Accept("*")
+                                                .UploadMode(FileUploadMode.UseForm).Multiple(true)
+                                                .LabelText("o soltar aquí")
+                                                .ShowFileList(true)
+                                                .Height(150)
+                        )
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-12 mt-2 text-center">
+                    <button type="submit" style="background-color: #006633 !important; width:40%;" onclick="return validateForm();" class="btn btn-success"> Enviar</button>
+                    @*<button type="button" onclick="CancelInconv()" class="btn btn-success"> Cancelar</button>*@
+                </div>
+            </div>
+        </div>
+
+        @(Html.DevExtreme().TextBoxFor(m => m.MovimientoBanPT.iNumIdPT)
+                                               .ID("IdPT")
+                                               .Visible(false)
+        )
+        @(Html.DevExtreme().TextBoxFor(m => m.MovimientoBanPT.iNumDetPT)
+                                                               .ID("IdDetPT")
+                                                               .Visible(false)
+        )
+        @(Html.DevExtreme().TextBoxFor(m => m.MovimientoBanPT.ICodTraResponsable)
+                                                               .ID("CodTra")
+                                                               .Visible(false)
+        )
+        @(Html.DevExtreme().TextBoxFor(m => m.MovimientoBanPT.VTipInconveniente)
+                                                               .ID("SelectedItems")
+                                                               .Visible(false)
+        )
+        @(Html.DevExtreme().TextBoxFor(m => m.MovimientoBanPT.Email)
+                                                               .ID("EmailTrab")
+                                                               .Visible(false)
+        )
+        @(Html.DevExtreme().TextBoxFor(m => m.MovimientoBanPT.vCodUsuarioCreacion)
+                                                   .Value(@HttpContextAccessor.HttpContext.Session.GetString("UserName1"))
+                                                   .Width("100%")
+                                                   .Visible(false)
+        )
+        @(Html.DevExtreme().TextBoxFor(m => m.MovimientoBanPT.IdCategoria)
+                                                               .ID("IdCategoriaSelected")
+                                                               .Visible(false)
+        )
+        @(Html.DevExtreme().TextBoxFor(m => m.MovimientoBanPT.PedidoTrabajo)
+                                                     .ID("txtPTName")
+                                                     .Visible(false)
+        )
+    }
+}
+
+@*POPUP CATEGORÍAS*@
+@(Html.DevExtreme().Popup()
+                        .ID("categorias-popup")
+                        .Width(450)
+                        .Height(380)
+                        .ShowTitle(true)
+                        .Title("Categorías de Inconveniente")
+                        .Visible(false)
+                        .DragEnabled(false)
+                        .CloseOnOutsideClick(false)
+)
+
+@using (Html.DevExtreme().NamedTemplate("popup-cat-template"))
+{
+    <div class="row">
+        @*<div class="col-12 etiqueta" style="align-self:center;"><label>Categorías de Inconveniente:</label></div>*@
+        <div class="col-12 control-container">
+            <div class="contCateg1">
+                @{
+                    int loop = 1; }
+                @foreach (var cat in categorias)
+                {
+                    <div class="catInc1">
+                        @*<button type="button" onclick="clickCat(@cat)"><img src="~/img/PLAY.png" /></button>*@
+                        @(Html.DevExtreme().Button()
+                           .ID(cat.Id.ToString())
+                           .Width(90)
+                           .Height(90)
+                           .Icon("../categorias/mainboton__" + loop + ".png")
+                           .Hint(cat.Descripcion)
+                           .OnClick("clickCat")
+                        )
+                    </div>
+                    loop += 1;
+                }
+            </div>
+        </div>
+    </div>
+
+}
+
+@* FINALIZAR PEDIDO DE TRABAJO *@
+
+@(Html.DevExtreme().Popup()
+        .ID("finalizar-popup")
+        .Width(500)
+        .Height(300)
+        .ShowTitle(true)
+        .Title("FINALIZAR PEDIDO DE TRABAJO")
+        .Visible(false)
+        .DragEnabled(false)
+        .CloseOnOutsideClick(false)
+        .OnShown("SetValuesInPopupFinControls")
+)
+
+@using (Html.DevExtreme().NamedTemplate("popup-template-f"))
+{
+
+    @using (Html.BeginForm("FinalizarPedidoTrabajo", "Actividad", FormMethod.Post, new { id = "form-inicioTrabajo-accion" }))
+    {
+        @(Html.DevExtreme().TextBoxFor(m => m.MovimientoEstadoPT.iNumIdPT)
+                .ID("IdPTF")
+                .Visible(false)
+        )
+        @(Html.DevExtreme().TextBoxFor(m => m.MovimientoEstadoPT.iNumDetPT)
+                .ID("IdDetPTF")
+                .Visible(false)
+        )
+        @(Html.DevExtreme().TextBoxFor(m => m.MovimientoEstadoPT.iNumDetEstPT)
+                .ID("IdDetEstPTF")
+                .Visible(false)
+                .Value("2")
+        )
+        <div class="form">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-7" style="background: #9B9F9B;">
+                        <div class="row">
+                            <div class="col-12" style="padding-top: 20px;height:50px">
+                                <div class="dx-field">
+                                    <div class="col-2" style="max-width:60%;text-align: left;color: black;font: bold 13px Arial Narrow,Helvetica;padding-left: 0px;padding-right: 0px;">
+                                        <p style="width:120px;">PEDIDO DE TRABAJO:</p>
+                                    </div>
+                                    <div class="dx-field-value col-5" style="max-width:60%;text-align: left;background: #9B9F9B;font: bold 13px Arial Narrow,Helvetica;padding-left: 0px;padding-right: 0px;">
+                                        @(Html.DevExtreme().TextBox()
+                                            .Value(@HttpContextAccessor.HttpContext.Session.GetString("UserName1"))
+                                            .ID("txtDescF")
+                                            .Width("100%")
+                                            .Height("50%")
+                                            .ReadOnly(true)
+                                            .StylingMode(EditorStylingMode.Underlined)
+                                            .Disabled(true)
+                                        )
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12" style="height:30px">
+                                <div class="dx-field">
+                                    <div class="col-2" style="max-width:50%;text-align: left;color: black;font: bold 13px Arial Narrow,Helvetica;padding-left: 0px;padding-right: 0px;">
+                                        <p style="width:55px;">NOMBRE:</p>
+                                    </div>
+                                    <div class="dx-field-value col-10" style="max-width:82%;text-align: left;background: #9B9F9B;font: bold 13px Arial Narrow,Helvetica;padding-left: 0px;padding-right: 0px;">
+                                        @(Html.DevExtreme().TextBoxFor(m => m.MovimientoEstadoPT.vCodUsuarioCreacion)
+                                            .Value(@HttpContextAccessor.HttpContext.Session.GetString("UserName1"))
+                                            .ReadOnly(true)
+                                            .Width("100%")
+                                            .Height("50%")
+                                            .StylingMode(EditorStylingMode.Underlined)
+                                            .Disabled(true)
+                                        )
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="dx-field">
+                                    <div class="col-2" style="max-width:45%;text-align: left;color: black;font: bold 13px Arial Narrow,Helvetica;padding-left: 0px;padding-right: 0px;">
+                                        <p style="width:50px;">TURNO:</p>
+                                    </div>
+                                    <div class="dx-field-value col-4" style="max-width:32%;text-align: left;background: #9B9F9B;font: bold 13px Arial Narrow,Helvetica;padding-left: 0px;padding-right: 0px;">
+                                        @(Html.DevExtreme().TextBox()
+                                            .Value("1")
+                                            .Width("100%")
+                                            .Height("40%")
+                                            .StylingMode(EditorStylingMode.Underlined)
+                                            .Disabled(true)
+                                        )
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row" style="background: #DADBD7;">&nbsp</div>
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="dx-field">
+                                    <div class="col-2" style="max-width:70%;text-align: left;color: black;font: bold 13px Arial Narrow,Helvetica;padding-left: 0px;padding-right: 0px;padding-top:10px;">
+                                        <p style="width:140px;">NUMERO DE TECNICOS:</p>
+                                    </div>
+                                    <div class="col-3" style="width:25%;text-align: left;padding-top:10px;">
+                                        <p style="text-align: center;background: white;">1</p>
+                                        @*@(Html.DevExtreme().NumberBox()
+                                            .ShowSpinButtons(true)
+                                            .Width("100%")
+                                            .ReadOnly(true)
+                                            .Value(1)
+                                            .StylingMode(EditorStylingMode.Outlined)
+                                            .Min(0)
+                                        *@
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="dx-field">
+                                    <div class="col-2" style="max-width:70%;text-align: left;color: black;font: bold 13px Arial Narrow,Helvetica;padding-left: 0px;padding-right: 0px;">
+                                        <p style="width:140px;">CANTIDAD DE TECNICOS <br>ESPECIALISTAS:</p>
+                                    </div>
+                                    <div class="col-3" style="width:25%;text-align: left;">
+                                        <p style="text-align: center;background: white;">1</p>
+                                        @*@(Html.DevExtreme().NumberBox()
+                                                .ShowSpinButtons(true)
+                                                .Width("100%")
+                                                .ReadOnly(true)
+                                                .StylingMode(EditorStylingMode.Outlined)
+                                                .Min(0)
+                                            )*@
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-5">
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="col-3" style="max-width:100%;height:20px;text-align: center;color: white;background: black;font: bold 13px Arial Narrow,Helvetica;padding-left: 15px;padding-right: 15px;">
+                                    FECHA Y HORA
+                                </div>
+                                <div class="dx-field-value col-4" style="max-width:100%;text-align: left;color:black;font: bold 13px Arial Narrow,Helvetica;padding-left: 30px;padding-right: 0px;">
+                                    @(Html.DevExtreme().DateBox()
+                                                    .Width("100%")
+                                                    .Value(DateTime.Now)
+                                                    .DisplayFormat("dd/MM/yyyy HH:mm")
+                                                    .ReadOnly(true)
+                                                    .StylingMode(EditorStylingMode.Underlined)
+                                                    .Disabled(true)
+                                    )
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="col-12">
+                                    @(Html.DevExtreme().Button()
+                                    .ID("btn-f-r")
+                                    .Width("100%")
+                                    .Height("100%")
+                                    .Icon(Url.Content("~/img/STOP.png"))
+                                    .UseSubmitBehavior(true)
+                                    .Type(ButtonType.Success)
+                                    )
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+@(Html.DevExtreme().LoadPanel()
+    .ID("loadPanel")
+    .ShadingColor("rgba(0,0,0,0.4)")
+    .Position(p => p.Of("#simpleList"))
+    .Visible(false)
+    .ShowIndicator(true)
+    .ShowPane(true)
+    .Shading(true)
+    .CloseOnOutsideClick(false)
+)
+
+
+<script>
+    var dataRow;
+    var idCat;
+    var clickeado = false;
+    var items = [];
+    var isLoadItems = false;
+    var nomCat;
+
+    function SetValuesInPopupControls() {
+        $("#btn-start-r")
+            .dxButton("instance")
+            .option("text", dataRow.EstadoPT === "I" ? "Reiniciar Pedido de Trabajo" : "")
+
+        $("#start-restart-popup")
+            .dxPopup("instance")
+            .option("title", dataRow.EstadoPT === "I" ? "Reiniciar Pedido de Trabajo" : "INICIAR PEDIDO DE TRABAJO");
+
+        $("#txtDesc")
+            .dxTextBox("instance")
+            .option("value", dataRow.PT);
+
+        $("#Opcion")
+            .dxTextBox("instance")
+            .option("value", dataRow.EstadoPT === "I" ? "Reiniciar" : "Iniciar");
+
+        $("#IdPT")
+            .dxTextBox("instance")
+            .option("value", dataRow.IdPT);
+
+        $("#IdDetPT")
+            .dxTextBox("instance")
+            .option("value", dataRow.IdDetPT);
+    }
+
+    function SetValuesInPopupFinControls() {
+
+        $("#txtDescF")
+            .dxTextBox("instance")
+            .option("value", dataRow.PT);
+
+        $("#IdPTF")
+            .dxTextBox("instance")
+            .option("value", dataRow.IdPT);
+
+        $("#IdDetPTF")
+            .dxTextBox("instance")
+            .option("value", dataRow.IdDetPT);
+    }
+    //POPUP INCONVENIENTE
+    function clickCat(data) {
+
+        nomCat = data.component.option("hint");
+        idCat = data.element[0].id;
+
+        var popup = $("#inconven-popup").dxPopup("instance");
+        popup.option("contentTemplate", $("#popup-inc-template"));
+        popup.show();
+
+        clickeado = true;
+
+        var thisp = $("#categorias-popup").dxPopup("instance");
+        thisp.hide();
+    }
+
+    function SetValuesInPopupInconvControls() {
+
+        var fileUploader = $("#uAdjunto");
+        var fileUploaderInstance = fileUploader.dxFileUploader("instance");
+        fileUploaderInstance.reset();
+
+        $("#txtMessage")
+            .dxTextArea("instance")
+            .option("value", null);
+
+        $("#txtDescPT")
+            .dxTextBox("instance")
+            .option("value", dataRow.PT);
+
+        $("#txtPTName")
+            .dxTextBox("instance")
+            .option("value", dataRow.PT);
+
+        $("#IdPT")
+            .dxTextBox("instance")
+            .option("value", dataRow.IdPT);
+
+        $("#IdDetPT")
+            .dxTextBox("instance")
+            .option("value", dataRow.IdDetPT);
+
+        $("#txtNomTra")
+            .dxTextBox("instance")
+            .option("value", dataRow.Trabajador);
+
+        $("#CodTra")
+            .dxTextBox("instance")
+            .option("value", dataRow.CodigoTrabajador);
+
+        $("#EmailTrab")
+            .dxTextBox("instance")
+            .option("value", dataRow.Email);
+
+        $("#simpleList")
+            .dxList("instance")
+            .option("selectedItemKeys", null)
+
+        $("#txtDescInc")
+            .dxTextBox("instance")
+            .option("visible", false);
+
+        $("#txtDescInc")
+            .dxTextBox("instance")
+            .option("value", null);
+
+        $("#IdCategoriaSelected")
+            .dxTextBox("instance")
+            .option("value", null);
+
+        $("#IdCategoriaSelected")
+            .dxTextBox("instance")
+            .option("value", idCat);
+
+        $("#nomCat").html(nomCat);
+
+        $("#simpleList").dxList("instance").reload();
+
+        for (var i = 1; i <= @categorias.Count(); i++) {
+            $("#btn_" + i).dxButton("instance").option("disabled", true);
+        }
+
+        $("#btn_" + idCat).dxButton("instance").option("disabled", false);
+    }
+
+    function CancelInconv() {
+        var popup = $("#inconven-popup").dxPopup("instance");
+        popup.hide();
+    }
+
+    function SelectItems(data) {
+        for (var i = 0; i < data.addedItems.length; i++) {
+            if (items.indexOf(data.addedItems[i].Id) === -1) {
+                items.push(data.addedItems[i].Id + '|' + idCat);
+            }
+        }
+        for (var i = 0; i < data.removedItems.length; i++) {
+            var index = items.indexOf(data.removedItems[i].Id + '|' + idCat);
+            if (index !== -1 && isLoadItems === false) {
+                items.splice(index, 1);
+            }
+        }
+        //if (data.component.option("selectedItemKeys").length > 0) {}
+        $("#SelectedItems")
+            .dxTextBox("instance").
+            option("value", items.join(","));
+    }
+
+    function disposeList(data) {
+        isLoadItems = true;
+    }
+
+    function fillEnd() {
+        isLoadItems = false;
+        var items = $("#simpleList").dxList("option", "items");
+        if (items.length <= 0 && clickeado === true) {
+            $("#txtDescInc")
+                .dxTextBox("instance")
+                .option("visible", true);
+
+            $("#simpleList")
+                .dxList("instance")
+                .option("visible", false)
+        } else {
+            if (clickeado === true && ($("#txtDescInc").dxTextBox("instance").option("value") === null || $("#txtDescInc").dxTextBox("instance").option("value") === "")) {
+                $("#txtDescInc")
+                    .dxTextBox("instance")
+                    .option("visible", false);
+            }
+
+            $("#simpleList")
+                .dxList("instance")
+                .option("visible", true)
+        }
+
+    }
+
+    function validateForm() {
+        var itemsL = $("#simpleList").dxList("option", "items");
+        var motivo = $('#SelectedItems').dxTextBox('instance').option('value');
+        var descInc = $('#txtDescInc').dxTextBox('instance').option('value');
+        if (itemsL.length <= 0) {
+            if (descInc === "" || descInc === null) {
+                alert('Ingrese un motivo!');
+                $("#txtDescInc").dxTextBox('instance').focus();
+                return false;
+            }
+        } else if (itemsL.length > 0) {
+            if (motivo === "" || motivo === null) {
+                alert('Seleccione por lo menos un motivo!');
+                return false;
+            }
+        }
+        else return true;
+    }
+
+    function getIdCategoria() {
+        return idCat;
+    }
+
+    function getLoadPanelInstance() {
+        return $("#loadPanel").dxLoadPanel("instance");
+    }
+
+</script>
+<br>
+
+<div class="row">
+    <div class="col-9 text-center">
+        @(Html.DevExtreme().SelectBox()
+                .DataSource(d => d.Mvc().Controller("Actividad").LoadAction("ListarTrabajadores_Rec").Key("IdTrabajador").LoadMode(DataSourceLoadMode.Raw))
+                .DisplayExpr("NombreTrabajador")
+                .ValueExpr("IdTrabajador")
+                .Width("100%")
+                .OnValueChanged("valueChangedJS")
+        )
+    </div>
+    <div class="col-3">
+        @(Html.DevExtreme().Button()
+                        .Text(ButtonStylingMode.Outlined.ToString())
+                        .Type(ButtonType.Success)
+                        .StylingMode(ButtonStylingMode.Outlined)
+                        .Width(120)
+                        .OnClick("openPopup")
+                        .ID("btnPrueba")
+                        .Disabled(true)
+        )
+    </div>
+
+</div>
+
+<script>
+    function valueChangedJS() {
+        $("#btnPrueba").dxButton("instance").option("disabled", false);
+    }
+    function openPopup() {
+        var popup = $("#popup-ingdetalle").dxPopup("instance");
+
+        popup.option("contentTemplate", $("#popup-template-"));
+        popup.show();
+    }
+</script>

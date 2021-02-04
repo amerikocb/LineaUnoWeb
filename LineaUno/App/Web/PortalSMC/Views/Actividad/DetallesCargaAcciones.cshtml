@@ -1,0 +1,182 @@
+﻿@model List<LineaUno.App.Web.Bus.PortalSMC.Model.Response.MCDetCargaForDosListadoResponse>
+@{
+    ViewData["Title"] = "DetallesCargaAcciones";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+@using LineaUno.App.Web.Bus.PortalSMC.Model.Response
+@using Microsoft.AspNetCore.Http
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
+
+@*<p class="mb-3 h5 d-none d-md-inline-block">Detalles de Carga</p>
+    <p class="mb-3 h5 d-inline-block d-md-none">Detalles de Carga</p>*@
+<div class="w3-row">
+    <div class="w3-col w3-container" style="vertical-align:middle;width:100%;height:35px;color: #fff!important;background-color: #3A8C3A!important;font: bold 16px Arial Narrow,Helvetica;">
+        <p style="text-align: left;margin-bottom: 0rem;color: #DADBD7;font: bold 7px Arial Narrow,Helvetica;">&nbsp</p>
+        <p>&nbspDETALLES DE CARGA</p>
+        <p style="text-align: left;margin-bottom: 0rem;color: #DADBD7;font: bold 5px Arial Narrow,Helvetica;">&nbsp</p>
+    </div>
+</div>
+@*<div class="d-flex justify-content-end">
+         <button type="submit" class="btn btn-success"><i class="fas fa-arrow-alt-circle-left fa-lg"></i> Regresar</button>
+    </div>
+    <p class="mb-3 h5 d-inline-block d-md-none">Detalles de carga de acciones</p>*@
+@*<div class="row d-flex justify-content-center">
+        <div class="col-12 col-md-12" style="overflow:overlay">
+            <table class="table table-bordered table-hover">
+                <thead class="thead-dark">
+                    <tr>
+                        <th scope="col">Carga</th>
+                        <th scope="col">Det</th>
+                        <th scope="col">NumPT </th>
+                        <th scope="col">Para Fecha</th>
+                        <th scope="col">H.Inicio</th>
+                        <th scope="col">H.Fin</th>
+                        <th scope="col">Area</th>
+                        <th scope="col">RUC</th>
+                        <th scope="col">Razon Social</th>
+                        <th scope="col">Zona</th>
+                        <th scope="col">Sec.Linea</th>
+                        <th scope="col">Zon.Especifica</th>
+                        <th scope="col">Des.Actividad</th>
+                        <th scope="col">Tip.Actividad</th>
+                        <th scope="col">Prioridad</th>
+                        <th scope="col">Per.Interv</th>
+                        <th scope="col">Rec.Medios</th>
+                        <th scope="col">Supervisor</th>
+                        <th scope="col">Sup.Telf</th>
+                        <th scope="col">Tec.Encargado</th>
+                        <th scope="col">TE.Telf</th>
+                        <th scope="col">Resp.Tercero</th>
+                        <th scope="col">Resp.Telf</th>
+                        <th scope="col">UsuarioCreacion</th>
+                        <th scope="col">Editar</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{ int loop = 1; }
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>@item.NumCarga</td>
+                            <td>@item.NumDetCarga</td>
+                            <td>@item.NumPT</td>
+                            <td style="white-space:nowrap">@item.ParFecha</td>
+                            <td>@item.HorInicio</td>
+                            <td>@item.HorFin</td>
+                            <td>@item.AreResponsable</td>
+                            <td>@item.Ruc</td>
+                            <td style="white-space:nowrap">@item.RazSocial</td>
+                            <td style="white-space:nowrap">@item.Zona</td>
+                            <td style="white-space:nowrap">@item.SecLinea</td>
+                            <td style="white-space:nowrap">@item.ZonEspecifica</td>
+                            <td style="white-space:nowrap">@item.DesActividad</td>
+                            <td>@item.TipActividad</td>
+                            <td>@item.Prioridad</td>
+                            <td>@item.PerIntervencion</td>
+                            <td style="white-space:nowrap">@item.RecMedios</td>
+                            <td style="white-space:nowrap">@item.SupResConcar</td>
+                            <td>@item.CelSupResponsable</td>
+                            <td style="white-space:nowrap">@item.TEResConcar</td>
+                            <td>@item.CelTEResponsable</td>
+                            <td style="white-space:nowrap">@item.ResTercero</td>
+                            <td>@item.CelTercero</td>
+                            <td>@item.CodUsuCreacion</td>
+                            <td><a href="/Actividad/BusquedaEdicionDetalle/?CodigoDetalle=@item.NumDetCarga&NumCarga=@item.NumCarga"><i class="fas fa-edit"></i></a></td>
+                        </tr>
+                        loop++;
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>*@
+@{
+
+    var numC = ViewData["numeroCarga"] as IEnumerable<string>;
+}
+
+@(Html.DevExtreme().DataGrid<MCDetCargaForDosListadoResponse>
+    ()
+    .ElementAttr(new { @class = "dx-card wide-card" })
+    .DataSource(d => d.Mvc().Controller("Actividad").LoadAction("BusquedaDetallesCarga").Key("NumCarga").LoadParams(new { numCarga = numC.ElementAt(0) }))
+    .ShowBorders(true)
+    .ShowColumnLines(true)
+    .ShowRowLines(true)
+    .WordWrapEnabled(true)
+    .FilterRow(f => f.Visible(true))
+    .ColumnAutoWidth(true)
+    .ColumnHidingEnabled(true)
+    .Columns(columns =>
+    {
+    columns.AddFor(m => m.NumCarga).Caption("N° Carga");
+    columns.AddFor(m => m.NumDetCarga);
+    columns.AddFor(m => m.NumPT).Caption("N° PT");
+    columns.AddFor(m => m.ParFecha).Caption("Fecha").Format("dd/MM/yyyy HH:mm:ss");
+    columns.AddFor(m => m.HorInicio);
+    columns.AddFor(m => m.HorFin);
+    columns.AddFor(m => m.AreResponsable);
+    columns.AddFor(m => m.Ruc);
+    columns.AddFor(m => m.RazSocial);
+    columns.AddFor(m => m.Zona);
+    columns.AddFor(m => m.SecLinea);
+    columns.AddFor(m => m.ZonEspecifica);
+    columns.AddFor(m => m.DesActividad);
+    columns.AddFor(m => m.TipActividad);
+    columns.AddFor(m => m.Prioridad);
+    columns.AddFor(m => m.PerIntervencion);
+    columns.AddFor(m => m.RecMedios);
+    columns.AddFor(m => m.SupResConcar);
+    columns.AddFor(m => m.CelSupResponsable);
+    columns.AddFor(m => m.TEResConcar);
+    columns.AddFor(m => m.CelTEResponsable);
+    columns.AddFor(m => m.ResTercero);
+    columns.AddFor(m => m.CelTercero);
+    columns.AddFor(m => m.CodUsuCreacion);
+    columns.Add()
+    .Type(GridCommandColumnType.Buttons)
+    .Width(110)
+    .Caption("Acciones")
+    .Buttons(btns =>
+    {
+
+    btns.Add()
+    .Text("See")
+    .Icon("edit")
+    .Hint("Editar")
+    .OnClick(@<text>
+    function showInfo(data) {
+    if(data !== null){
+    dataRow = data.row.data;
+    $(location).attr('href', '/Actividad/BusquedaEdicionDetalle/?CodigoDetalle=' + dataRow.NumDetCarga + '&NumCarga=' + dataRow.NumCarga)
+    }
+    }
+    </text>);
+
+});
+
+})
+.Paging(p => p.PageSize(5))
+.Pager(p => p
+.ShowPageSizeSelector(true)
+.AllowedPageSizes(new[] { 5, 10, 20 })
+.ShowInfo(true)
+)
+)
+<br />
+<div class="text-center">
+    @(Html.DevExtreme().Button()
+                            .Text("Regresar")
+                            .Type(ButtonType.Success)
+                            .StylingMode(ButtonStylingMode.Contained)
+                            .Width(120)
+                            .OnClick("ReturnClick")
+                            
+    )
+</div>
+
+<script>
+    var dataRow;
+    function ReturnClick() {
+        $(location).attr('href', '/Actividad/BusquedaCabecera');
+    }
+</script>
+

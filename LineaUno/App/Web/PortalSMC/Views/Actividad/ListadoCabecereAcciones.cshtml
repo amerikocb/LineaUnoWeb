@@ -1,0 +1,174 @@
+﻿@model LineaUno.App.Web.Bus.PortalSMC.Model.Request.McParametrosProcessPlantillaRequest
+@*@model List<LineaUno.App.Web.Bus.PortalSMC.Model.Response.MCMaeCargaForDosListadoResponse>*@
+@{
+    ViewData["Title"] = "ListadoCabecereAcciones";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+@using LineaUno.App.Web.Bus.PortalSMC.Model.Response
+@using Microsoft.AspNetCore.Http
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
+
+@*<p class="mb-3 h4 d-none d-md-inline-block">Bandeja de Pedidos de Trabajo</p>
+<p class="mb-3 h5 d-inline-block d-md-none">Bandeja de Pedidos de Trabajo</p>*@
+
+<div class="w3-row">
+    <div class="w3-col w3-container" style="vertical-align:middle;width:100%;height:35px;color: #fff!important;background-color: #3A8C3A!important;font: bold 16px Arial Narrow,Helvetica;">
+        <p style="text-align: left;margin-bottom: 0rem;color: #DADBD7;font: bold 7px Arial Narrow,Helvetica;">&nbsp</p>
+        <p>&nbspBANDEJA DE PEDIDOS DE TRABAJO</p>
+        <p style="text-align: left;margin-bottom: 0rem;color: #DADBD7;font: bold 5px Arial Narrow,Helvetica;">&nbsp</p>
+    </div>
+</div>
+
+@*<div class="row d-flex justify-content-center" style="overflow:overlay">
+        <div class="col-12 col-md-10">
+            <table class="table">
+                <thead class="thead-dark">
+                    <tr>
+                        <th scope="col">#</th>
+                        <th scope="col">Estado Carga</th>
+                        <th scope="col">Tipo Carga</th>
+                        <th scope="col">Usuario Creación</th>
+                        <th scope="col">Fecha Creación</th>
+                        <th scope="col">Ir</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{ int loop = 1; }
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>@item.numCarga</td>
+                            <td>@item.Estado</td>
+                            <td>@item.TipCarga</td>
+                            <td>@item.codUsuCreacion</td>
+                            <td>@item.sdFEcCreacion</td>
+                            <td><a href="/Actividad/BusquedaDetalles/?numCarga=@item.numCarga"><i class="fas fa-search"></i></a></td>
+                        </tr>
+                        loop++;
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>*@
+
+@(Html.DevExtreme().DataGrid<MCMaeCargaForDosListadoResponse>
+    ()
+    .ElementAttr(new { @class = "dx-card wide-card" })
+    .DataSource(d => d.Mvc().Controller("Actividad").LoadAction("ListadoCabecera").Key("numCarga"))
+    .ShowBorders(true)
+    .ShowColumnLines(true)
+    .ShowRowLines(true)
+    .WordWrapEnabled(true)
+    .FilterRow(f => f.Visible(true))
+    .ColumnAutoWidth(true)
+    .ColumnHidingEnabled(true)
+    .Columns(columns =>
+    {
+    columns.AddFor(m => m.numCarga).Width(100).Caption("N° Carga");
+    columns.AddFor(m => m.Estado).Width(100);
+    columns.AddFor(m => m.TipCarga).Width(100).Caption("Tipo Carga");
+    columns.AddFor(m => m.codUsuCreacion).Caption("Usuario Creación");
+    columns.AddFor(m => m.sdFEcCreacion).Format("dd/MM/yyyy HH:mm:ss").Caption("Fecha Creación");
+    columns.Add()
+    .Type(GridCommandColumnType.Buttons)
+    .Width(110)
+    .Caption("Acciones")
+    .Buttons(btns =>
+    {
+
+    btns.Add()
+    .Text("See")
+    .Icon("search")
+    .Hint("Ver Detalle")
+    .OnClick(@<text>
+    function showInfo(data) {
+    if(data !== null){
+    dataRow = data.row.data;
+    $(location).attr('href', '/Actividad/DetallesCargaAcciones/?numCarga=' + dataRow.numCarga)
+    }
+    }
+    </text>);
+
+btns.Add()
+.Text("See")
+.Icon("clock")
+.Hint("Procesar Plantilla")
+.OnClick("ProcesarPlantilla");
+
+});
+
+})
+.Paging(p => p.PageSize(5))
+.Pager(p => p
+.ShowPageSizeSelector(true)
+.AllowedPageSizes(new[] { 5, 10, 20 })
+.ShowInfo(true)
+)
+)
+
+@using (Html.BeginForm("ProcesarPlantilla", "Actividad", FormMethod.Post, new { id = "form-process-plant" }))
+{
+    @(Html.DevExtreme().TextBoxFor(m => m.NumCarga)
+                                                                            .ID("NumCarga")
+                                                                            .Visible(false)
+    )
+    @(Html.DevExtreme().TextBoxFor(m => m.Usuario)
+                                                                            .ID("IdDetPT")
+                                                                            .Visible(false)
+                                                                            .Value(@HttpContextAccessor.HttpContext.Session.GetString("UserName1"))
+    )
+}
+
+<script>
+    var dataRow;
+
+    function ProcesarPlantilla(data) {
+        dataRow = data.row.data;
+
+        $("#NumCarga").dxTextBox("instance").option("value", dataRow.numCarga);
+
+        if (dataRow.Estado === "P") {
+            DevExpress.ui.notify('Y se ha procesado', 'error', 2000);
+        } else {
+            $("#form-process-plant").submit(); // Submit the form
+        }
+    }
+
+</script>
+
+@if (ViewBag.MensajeExito != null)
+{
+    <script type="text/javascript">
+            // var valtext = $("#NumCarga").val()
+               window.onload = function () {
+                   var valtext = $("#NumCarga").val()
+                    Swal.fire({
+                        title: 'Exito',
+                        text: '@ViewBag.MensajeExito',
+                        icon: 'success',
+                        showCancelButton: false,
+                        confirmButtonText: 'Ok'
+                    }).then((result) => {
+                        if (result.value) {
+
+                        }
+                    })
+                };
+    </script>
+}
+
+@if (ViewBag.MensajeError != null)
+{
+    <script type="text/javascript">
+                window.onload = function () {
+                    Swal.fire({
+                        title: 'Error',
+                        text: '@ViewBag.MensajeError',
+                        icon: 'error',
+                        showCancelButton: false,
+                        confirmButtonText: 'Ok'
+                    })
+                };
+    </script>
+}
+

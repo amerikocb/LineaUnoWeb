@@ -1,0 +1,197 @@
+﻿@model LineaUno.App.Web.Bus.PortalSMC.Model.Response.MCDetCargaForDosBusquedaEdicionResponse
+@using LineaUno.App.Web.Bus.PortalSMC.Model.Response
+@using Microsoft.AspNetCore.Http
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
+@{
+    ViewData["Title"] = "EdicionAccion";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<p class="mb-3 h5 d-none d-md-inline-block">Edición de acción</p>
+<p class="mb-3 h5 d-inline-block d-md-none">Edición de acción</p>
+
+@{
+    IEnumerable<ParametroValorResponse> Prioridades = ViewData["ListaPrioridades"] as IEnumerable<ParametroValorResponse>;
+    ResStringResponse trab = ViewData["Trabajadores"] as ResStringResponse;
+    List<SelectListItem> prior = new List<SelectListItem>();
+    @foreach (var item in Prioridades)
+    {
+        SelectListItem sl = new SelectListItem
+        {
+            Value = item.Id.ToString(),
+            Text = item.Descripcion
+        };
+        prior.Add(sl);
+    }
+}
+
+<div class="row d-flex justify-content-center">
+    <div class="col-12 col-md-10">
+        @using (Html.BeginForm("EdicionDetalle", "Actividad", FormMethod.Post, new { id = "form-edicion-accion" }))
+        {
+            <div class="row">
+                <div class="col-sm-6">
+                    <div class="form-group">
+                        <label>Numero de Carga</label>
+                        @Html.TextBoxFor(model => model.NumCarga, new { id = "NumCarga", @class = "form-control", @readonly = "readonly" })
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="form-group">
+                        <label>Num.Det</label>
+                        @Html.TextBoxFor(model => model.CodigoDetalle, new { @class = "form-control", @readonly = "readonly" })
+
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Ruc</label>
+                @Html.TextBoxFor(model => model.Ruc, new { maxlength = 11, placeholder = "Ingrese RUC", @class = "form-control" })
+                @Html.ValidationMessageFor(model => model.Ruc, "", new { @class = "form-text text-danger" })
+            </div>
+            <div class="form-group">
+                <label>Razón Social</label>
+                @Html.TextBoxFor(model => model.RazonSocial, new { maxlength = 200, placeholder = "Ingrese Razón Social", @class = "form-control" })
+                @Html.ValidationMessageFor(model => model.RazonSocial, "", new { @class = "form-text text-danger" })
+            </div>
+            <div class="form-group">
+                <label>Zona Específica</label>
+                @Html.TextBoxFor(model => model.ZonaEspecifica, new { maxlength = 200, placeholder = "Ingrese Zona Específica", @class = "form-control" })
+                @Html.ValidationMessageFor(model => model.ZonaEspecifica, "", new { @class = "form-text text-danger" })
+            </div>
+
+            <div class="row">
+                <div class="col-sm-6">
+                    <div class="form-group">
+                        <label>Prioridad</label>
+                        @Html.DropDownListFor(model => model.Prioridad, prior, new { maxlength = 200, placeholder = "Ingrese Prioridad", @class = "form-control" })
+                        @Html.ValidationMessageFor(model => model.Prioridad, "", new { @class = "form-text text-danger" })
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="form-group">
+                        <label>Permiso de Intervención</label>
+                        @Html.DropDownListFor(model => model.PermisoInt,
+                                             new List<SelectListItem> {
+                                                  new SelectListItem { Value = "NO" , Text = "NO" },
+                                                  new SelectListItem { Value = "SI" , Text = "SI" }
+                                             },
+                        new { @class = "form-control" })
+                        @Html.ValidationMessageFor(model => model.PermisoInt, "", new { @class = "form-text text-danger" })
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-12">
+                    <label>Técnico</label>
+                    @(Html.DevExtreme().List()
+                            .ID("listaTecnicos")
+                            .DataSource(m => m.Mvc().Controller("Actividad").LoadAction("ListarTrabajadores_Rec").Key("IdTrabajador").LoadMode(DataSourceLoadMode.Raw))
+                            .Height(300)
+                            .SearchEnabled(true)
+                            .ShowSelectionControls(true)
+                            .SelectionMode(ListSelectionMode.Multiple)
+                            .SearchExpr(new[] { "NombreTrabajador" })
+                            .SearchMode(CollectionSearchMode.Contains)
+                            .ItemTemplate("<div><%- NombreTrabajador %></div>")
+                            .NextButtonText("VER MÁS")
+                            .OnSelectionChanged("SeleccionItems")
+                            .OnItemClick("itemClick")
+                    )
+
+                    @(Html.DevExtreme().TextBoxFor(model => model.Trabajadores)
+                                .ID("selectedItemKeys")
+                                .Visible(false)
+                    )
+
+                    @(Html.DevExtreme().TextBoxFor(model => model.Usuario)
+                                .Value(@HttpContextAccessor.HttpContext.Session.GetString("UserName1"))
+                                .Visible(false)
+                    )
+
+                </div>
+            </div>
+            <button type="submit" onclick="submitdata()" class="btn btn-success"><i class="fas fa-save fa-lg"></i> Grabar</button>
+        }
+    </div>
+</div>
+
+@(Html.DevExtreme().TextBox()
+                            .ID("txtTrab")
+                            .Value(trab.Resultado)
+                            .Visible(false)
+                            .OnContentReady("trabReady")
+)
+
+@if (ViewBag.MensajeExito != null)
+{
+    <script type="text/javascript">
+
+
+
+        // var valtext = $("#NumCarga").val()
+
+           window.onload = function () {
+               var valtext = $("#NumCarga").val()
+                Swal.fire({
+                    title: 'Exito',
+                    text: '@ViewBag.MensajeExito',
+                    icon: 'success',
+                    showCancelButton: false,
+                    confirmButtonText: 'Ok'
+                }).then((result) => {
+                    if (result.value) {
+                        window.location.href = "/Actividad/DetallesCargaAcciones/?numCarga=" + valtext;
+                    }
+                })
+            };
+    </script>
+}
+
+@if (ViewBag.MensajeError != null)
+{
+    <script type="text/javascript">
+            window.onload = function () {
+                Swal.fire(
+                    'Exito',
+                    '@ViewBag.MensajeError',
+                    'success'
+                )
+            };
+    </script>
+}
+
+<script>
+    var itemClickeado = false;
+
+    function SeleccionItems(data) {
+        $("#selectedItemKeys")
+            .dxTextBox("instance").
+            option("value", data.component.option("selectedItemKeys").join(","));
+
+        var list = $("#listaTecnicos").dxList("instance");
+        var items = data.component.option("items");
+        var selectedItems = data.component.option("selectedItems");
+
+        if (itemClickeado === false) {
+            selectedItems.forEach(item => {
+                var itemIndex = items.map(function (item) { return item.IdTrabajador; }).indexOf(item.IdTrabajador);
+                list.reorderItem(itemIndex, 0);
+            });
+            itemClickeado = true;
+        }
+    }
+
+    function trabReady(data) {
+        var selTrab = data.component.option("value").split(",");
+
+        $("#listaTecnicos").dxList("instance").option("selectedItemKeys", selTrab);
+    }
+
+    function itemClick() {
+        itemClickeado = true;
+    }
+</script>
+
+

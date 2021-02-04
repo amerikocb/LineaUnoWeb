@@ -1,0 +1,18 @@
+﻿/**********************************************
+File : skin.css;
+-----------------------------------------------
+Description:
+   - Agregaremos todos los estilos referente
+     a colores, fondos, sombras, etc . 
+     Que definan la identidad del sitio.
+    
+   - Basandonos en las clases por cada grupo
+    se manejaran los colores
+-----------------------------------------------
+Assigned to: Sebastian Yabiku        
+/*********************************************/
+.skin-BarDark .comp-BtnUser .btn {
+    background: #13d155;
+    color: #ededed;
+    border-left: 1px solid #ededed;
+}

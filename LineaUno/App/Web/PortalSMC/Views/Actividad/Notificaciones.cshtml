@@ -1,0 +1,577 @@
+﻿
+@model LineaUno.App.Web.Bus.PortalSMC.PedidosTrabajo
+
+@{
+    ViewData["Title"] = "Notificaciones";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+@using LineaUno.App.Web.Bus.PortalSMC.Model.Response
+@using Microsoft.AspNetCore.Http
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
+
+<div class="w3-row">
+    <div class="w3-col w3-container" style="vertical-align:middle;width:100%;height:35px;color: #fff!important;background-color: #3A8C3A!important;font: bold 16px Arial Narrow,Helvetica;">
+        <p style="text-align: left;margin-bottom: 0rem;color: #DADBD7;font: bold 7px Arial Narrow,Helvetica;">&nbsp</p>
+        <p>&nbspBANDEJA DE NOTIFICACIONES</p>
+        <p style="text-align: left;margin-bottom: 0rem;color: #DADBD7;font: bold 5px Arial Narrow,Helvetica;">&nbsp</p>
+    </div>
+</div>
+
+@(Html.DevExtreme().DataGrid<NotificacionBanResponse>
+    ()
+    .ElementAttr(new { @class = "dx-card wide-card" })
+    .DataSource(d => d.Mvc().Controller("Actividad").LoadAction("BusquedaNotificaciones_Bandeja").Key("PT"))
+    .ShowBorders(true)
+    .ShowColumnLines(true)
+    .ShowRowLines(true)
+    .WordWrapEnabled(true)
+    .FilterRow(f => f.Visible(true))
+    .ColumnAutoWidth(true)
+    .ColumnHidingEnabled(true)
+    .Columns(columns =>
+    {
+    columns.AddFor(m => m.De).Width(200);
+    columns.AddFor(m => m.PT).Width(250);
+    columns.AddFor(m => m.Tipo).Width(130);
+    columns.AddFor(m => m.Recibido).Format("dd/MM/yyyy HH:mm:ss").Width(200);
+    columns.AddFor(m => m.Estado);
+    columns.Add()
+    .Type(GridCommandColumnType.Buttons)
+    .Width(110)
+    .Caption("Acciones")
+    .Buttons(btns =>
+    {
+
+    btns.Add()
+    .Text("See")
+    .Icon("info")
+    .Hint("Ver Inconveniente")
+    .OnClick(@<text>
+    function showInfo(data) {
+    if(data !== null)
+    dataRow = data.row.data;
+    $("#dataNot").dxTextBox("instance").option("value", dataRow.IdPT + "|" + dataRow.IdDetPT)
+    var popup = $("#inconven-popup").dxPopup("instance");
+    popup.option("contentTemplate", $("#popup-inc-template"));
+    popup.show();
+    }
+    </text>);
+
+btns.Add()
+.Text("See")
+.Icon("export")
+.Hint("Responder")
+.OnClick(@<text>
+                function showInfo(data) {
+                if(data !== null)
+                dataRow = data.row.data;
+                if(dataRow.Estado === 'Atendido')
+                DevExpress.ui.notify('El inconveniente ha sido atendido', 'error', 1200);
+                else {
+                var popup = $("#responder-popup").dxPopup("instance");
+                popup.option("contentTemplate", $("#popup-r-template"));
+                popup.show();
+                }
+                }
+</text>);
+});
+
+})
+.Paging(p => p.PageSize(5))
+.Pager(p => p
+.ShowPageSizeSelector(true)
+.AllowedPageSizes(new[] { 5, 10, 20 })
+.ShowInfo(true)
+)
+)
+
+@* INICIAR PEDIDO DE TRABAJO *@
+@*Popup Iniciar/Reanudar*@
+
+@(Html.DevExtreme().Popup()
+       .ID("responder-popup")
+       .Width(500)
+       .Height(360)
+       .ShowTitle(true)
+       .Title("Respuesta a Inconveniente")
+       .Visible(false)
+       .DragEnabled(false)
+       .CloseOnOutsideClick(false)
+       .OnShown("SetValuesInPopupControls")
+)
+
+@using (Html.DevExtreme().NamedTemplate("popup-r-template"))
+{
+
+    @using (Html.BeginForm("ResponderInconvPT", "Actividad", FormMethod.Post, new { enctype = "multipart/form-data" }))
+    {
+        @(Html.DevExtreme().TextBoxFor(m => m.MovimientoBanPT.iNumIdPT)
+                       .ID("IdPT")
+                       .Visible(false)
+        )
+        @(Html.DevExtreme().TextBoxFor(m => m.MovimientoBanPT.iNumDetPT)
+                       .ID("IdDetPT")
+                       .Visible(false)
+        )
+        @(Html.DevExtreme().TextBoxFor(m => m.MovimientoBanPT.Email)
+                       .ID("EmailTrab")
+                       .Visible(false)
+        )
+        @(Html.DevExtreme().TextBoxFor(m => m.MovimientoBanPT.vCodUsuarioCreacion)
+           .Value(@HttpContextAccessor.HttpContext.Session.GetString("UserName1"))
+           .Width("100%")
+           .Visible(false)
+        )
+
+        <div class="row">
+            <div class="col-12 w-pad">
+                <div class="dx-field">
+                    <div class="col-3 etiqueta w-pad" style="align-self:center;"><label>Pedido de Trabajo:</label></div>
+                    <div class="dx-field-value col-9 controlField w-pad" style="padding-left:0px !important">
+                        @(Html.DevExtreme().TextBoxFor(m => m.MovimientoBanPT.PedidoTrabajo)
+                       .ID("txtDescPT")
+                       .Width("100%")
+                       .ReadOnly(true)
+                       .StylingMode(EditorStylingMode.Underlined)
+                        )
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row mb-2">
+            <div class="col-12 w-pad">
+                <div class="dx-field">
+                    <div class="col-3 etiqueta w-pad" style="align-self:center;"><label>De:</label></div>
+                    <div class="dx-field-value col-9 controlField w-pad" style="padding-left:0px !important">
+                        @(Html.DevExtreme().TextBox()
+                      .Value(@HttpContextAccessor.HttpContext.Session.GetString("UserName1"))
+                      .ReadOnly(true)
+                      .ID("txtNomTra")
+                      .Width("100%")
+                      .StylingMode(EditorStylingMode.Underlined)
+                        )
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row mb-2">
+            <div class="col-5 w-pad">
+                <div class="col-12 etiqueta" style="align-self:center;"><label>Cuerpo de Mensaje:</label></div>
+                <div class="dx-field-value control-container controlField">
+                    @(Html.DevExtreme().TextAreaFor(m => m.MovimientoBanPT.Mensaje)
+                   .ID("txtMessage")
+                   .Width("100%")
+                   .Height(165)
+                   .StylingMode(EditorStylingMode.Outlined)
+                    )
+                </div>
+            </div>
+            <div class="col-7 w-pad" style="padding-left:5px !important">
+                <div class="col-12 etiqueta" style="align-self:center;"><label>Adjunto:</label></div>
+                <div class="dx-field-value col-12 control-container">
+                    @(Html.DevExtreme().FileUploader()
+                    .SelectButtonText("Seleccionar Archivo")
+                    .ReadyToUploadMessage("Listo para subir")
+                    .Name("attachFiles")
+                    .LabelText("o soltar aquí")
+                    .Accept("*")
+                    .UploadMode(FileUploadMode.UseForm).Multiple(true)
+                    )
+                </div>
+            </div>
+
+        </div>
+        <div class="row">
+            <div class="col-12 mt-2 text-center">
+                @(Html.DevExtreme().Button()
+                .Text("Responder")
+                .UseSubmitBehavior(true)
+                .Type(ButtonType.Success)
+                )
+                <button type="button" onclick="CancelRpta()" class="btn btn-info"> Cancelar</button>
+            </div>
+        </div>
+
+    }
+}
+
+
+@(Html.DevExtreme().Popup()
+      .ID("inconven-popup")
+      .Width(450)
+      .Height(350)
+      .ShowTitle(true)
+      .Title("Notificación de Inconveniente")
+      .Visible(false)
+      .DragEnabled(false)
+      .CloseOnOutsideClick(false)
+      .OnShown("SetValuesInPopupInconvControls")
+)
+
+@using (Html.DevExtreme().NamedTemplate("popup-inc-template"))
+{
+    @using (Html.BeginForm("ResponderInconvPT", "Actividad", FormMethod.Post, new { id = "form-RegInconvPT-accion" }))
+    {
+        <div class="container">
+            <div class="row mb-2">
+                <div class="col-3 etiqueta w-pad" style="align-self:center;"><label>Pedido de Trabajo:</label></div>
+                <div class="dx-field-value col-9 controlField w-pad">
+                    @(Html.DevExtreme().TextBox()
+                   .ID("txtDescPT_Inc")
+                   .Width("100%")
+                   .ReadOnly(true)
+                   .StylingMode(EditorStylingMode.Underlined)
+                    )
+                </div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-3 etiqueta w-pad" style="align-self:center;"><label>De:</label></div>
+                <div class="dx-field-value col-9 controlField w-pad">
+                    @(Html.DevExtreme().TextBox()
+                   .ReadOnly(true)
+                   .ID("txtDe_Inc")
+                   .Width("100%")
+                   .StylingMode(EditorStylingMode.Underlined)
+                    )
+                </div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-6 w-pad" style="padding-left: 0px;">
+                    <div class="col-12 etiqueta w-pad" style="align-self:center;"><label>Motivos de Inconveniente:</label></div>
+                    <div class="col-12 control-container controlField">
+                        @(Html.DevExtreme().List()
+                        .ID("listaMotivos_Inc")
+                        .Height(150)
+                        .SelectionMode(ListSelectionMode.Multiple)
+                        .IndicateLoading(true)
+                        .Width("100%")
+                        .ItemTemplate(@<text><%- Descripcion %></text>)
+.DataSource(d => d.Mvc()
+.Controller("Actividad")
+.LoadAction("ObtenerListaMotivos_Inconveniente")
+.Key("Id")
+.LoadParams(new { PT = new JS("GetPT"), detPT = new JS("GetDetPT") }))
+                        )
+                    </div>
+                </div>
+                <div class="col-6 w-pad" style="padding-left: 0px;">
+                    <div class="col-12 etiqueta" style="align-self:center;"><label>Mensaje</label></div>
+                    <div class="dx-field-value control-container controlField">
+                        @(Html.DevExtreme().TextAreaFor(m => m.MovimientoBanPT.Mensaje)
+                        .ID("txtMessage_Inc")
+                        .Width("100%")
+                        .Height(140)
+                        .ReadOnly(true)
+                        .StylingMode(EditorStylingMode.Outlined)
+                        )
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-12 mt-2 text-center">
+                    <button type="button" onclick="CancelInconv()" class="btn btn-info"> Cerrar</button>
+                </div>
+            </div>
+        </div>
+    }
+
+
+}
+
+@if (ViewBag.MensajeExito != null)
+{
+    <script type="text/javascript">
+
+
+
+        // var valtext = $("#NumCarga").val()
+
+           window.onload = function () {
+               var valtext = $("#NumCarga").val()
+                Swal.fire({
+                    title: 'Exito',
+                    text: '@ViewBag.MensajeExito',
+                    icon: 'success',
+                    showCancelButton: false,
+                    confirmButtonText: 'Ok'
+                }).then((result) => {
+                    if (result.value) {
+
+                    }
+                })
+            };
+    </script>
+}
+
+@if (ViewBag.MensajeError != null)
+{
+    <script type="text/javascript">
+            window.onload = function () {
+                Swal.fire({
+                    title: 'Error',
+                    text: '@ViewBag.MensajeError',
+                    icon: 'error',
+                    showCancelButton: false,
+                    confirmButtonText: 'Ok'
+                })
+            };
+    </script>
+}
+
+<style type="text/css">
+    .dx-field-value:not(.dx-switch):not(.dx-checkbox):not(.dx-button), .dx-field-value-static {
+        width: 100%
+    }
+
+    .dx-texteditor.dx-editor-underlined.dx-state-disabled:after, .dx-texteditor.dx-editor-underlined.dx-state-readonly:after, .dx-texteditor.dx-editor-underlined.dx-state-readonly.dx-state-hover:after {
+        border-bottom-style: dotted;
+        border-bottom-width: 0px;
+    }
+
+    .dx-state-disabled .dx-texteditor-input {
+        color: #000000 !important;
+        font-family: 'Arial Narrow';
+        font-weight: bold;
+        font-size: 15px !important;
+    }
+
+    div#btn-start-r .dx-icon {
+        width: 130px !important;
+        height: 130px !important;
+        /*font-size: 90px;*/
+    }
+
+    div#btn-start-r .dx-button-content {
+        padding: 0px !important;
+        background: #DADBD7 !important;
+    }
+
+    div#btn-start-r .dx-button-has-icon {
+        height: 32px !important;
+    }
+
+    div#btn-f-r .dx-icon {
+        width: 130px !important;
+        height: 130px !important;
+        /*font-size: 90px;*/
+    }
+
+    div#btn-f-r .dx-button-content {
+        padding: 0px !important;
+        background: #DADBD7 !important;
+    }
+
+    .dx-toolbar {
+        /*width: 100% !important;*/
+        height: 40px !important;
+    }
+
+    .dx-toolbar-item-content {
+        height: 100% !important;
+        padding-top: 4px !important;
+    }
+
+
+    #pt_grid .current-value {
+        display: inline-block;
+    }
+
+        #pt_grid .current-value .pt-i {
+            display: inline-block;
+        }
+
+    #pt_grid .icon-pt {
+        position: relative;
+        font-size: 16px;
+    }
+
+    #pt_grid .pt-i .icon-pt:after {
+        content: '';
+        display: block;
+        height: 20px;
+        width: 20px;
+        position: absolute;
+        right: -12px;
+        top: -20px;
+        background-repeat: no-repeat;
+        background-size: 20px 20px;
+    }
+
+    #pt_grid td {
+        vertical-align: middle;
+    }
+
+    .turno {
+        padding-left: 0px !important;
+    }
+
+    .dx-list-select-all-label::after {
+        visibility: visible;
+        position: absolute;
+        top: 0;
+        left: 0;
+        content: "Seleccionar Todo";
+        margin-left: 38px;
+    }
+
+    .dx-list-select-all-label {
+        visibility: hidden;
+        position: relative;
+        width: 100%;
+    }
+
+    .etiqueta {
+        text-align: left;
+        color: black;
+        font: bold 13px Arial Narrow,Helvetica;
+        padding-left: 0px;
+        padding-right: 0px;
+    }
+
+    .controlField input {
+        max-width: 100%;
+        text-align: left;
+        color: #3a3737d9;
+        font: bold 13px Arial Narrow,Helvetica;
+        padding-left: 30px;
+        padding-right: 0px;
+    }
+
+    #simpleList .dx-list-select-all-label {
+        font-size: 13px;
+        padding: 0 !important;
+        /* font-family: arial-narrow; */
+    }
+
+    div#simpleList .dx-list-select-all {
+        padding: 4px 0;
+    }
+
+    div#simpleList .dx-list-select-all-checkbox {
+        margin: 0px !important;
+    }
+
+    .dx-list-item-before-bag .dx-list-select-checkbox {
+        margin-left: 0px !important;
+    }
+
+    .dx-list-item-before-bag.dx-list-select-checkbox-container {
+        width: 37px !important;
+    }
+
+    .dx-list-item-content {
+        font-size: 13px;
+        padding: 6px 0px 6px;
+    }
+
+    .dx-fileuploader-container .dx-button {
+        font-size: 9px;
+        padding: 0px;
+        background-color: #006633;
+        color: #fff;
+    }
+
+    .dx-fileuploader-input-wrapper {
+        padding: 0;
+    }
+
+    .dx-fileuploader-container.dx-button-has-text.dx-button-content {
+        padding: 6px 16px;
+    }
+
+    .dx-fileuploader-wrapper {
+        padding: 0px;
+    }
+
+    .control-container {
+        padding-left: 0px !important;
+    }
+
+    .dx-fileuploader-show-file-list .dx-fileuploader-files-container {
+        padding: 1px 3px 0;
+        max-height: 120px !important;
+        overflow: auto;
+    }
+
+    .w-pad {
+        padding-right: 0px !important;
+    }
+
+    .dx-popup-content {
+        padding: 10px !important;
+    }
+</style>
+
+
+
+@(Html.DevExtreme().TextBox().ID("dataNot").Visible(false))
+
+<script>
+    var dataRow;
+
+    function SetValuesInPopupControls() {
+        $("#txtDescPT")
+            .dxTextBox("instance")
+            .option("value", dataRow.PT);
+
+        $("#IdPT")
+            .dxTextBox("instance")
+            .option("value", dataRow.IdPT);
+
+        $("#IdDetPT")
+            .dxTextBox("instance")
+            .option("value", dataRow.IdDetPT);
+    }
+
+    function SetValuesInPopupInconvControls() {
+        console.log(dataRow);
+        $("#txtDescPT_Inc")
+            .dxTextBox("instance")
+            .option("value", dataRow.PT);
+
+        $("#txtDe_Inc")
+            .dxTextBox("instance")
+            .option("value", dataRow.De);
+
+        $("#txtMessage_Inc")
+            .dxTextArea("instance")
+            .option("value", dataRow.Mensaje);
+
+        $("#listaMotivos_Inc")
+            .dxList("instance").reload();
+
+    }
+
+    function GetPT(datos) {
+        return $("#dataNot").dxTextBox("instance").option("value").split('|')[0];
+    }
+
+    function GetDetPT(datos) {
+        return $("#dataNot").dxTextBox("instance").option("value").split('|')[1];
+    }
+
+    function CancelInconv() {
+        var popup = $("#inconven-popup").dxPopup("instance");
+        popup.hide();
+    }
+
+    function CancelRpta() {
+        var popup = $("#responder-popup").dxPopup("instance");
+        popup.hide();
+    }
+
+
+    function SelectItems(data) {
+        return false;
+    }
+
+    function validateForm() {
+        var motivo = $('#SelectedItems').dxTextBox('instance').option('value');
+
+        if (motivo === "" || motivo === null) {
+            alert('Seleccione por lo menos un motivo!')
+            return false;
+        }
+        else return true;
+    }
+</script>

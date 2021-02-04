@@ -1,0 +1,404 @@
+﻿@{
+    ViewData["Title"] = "Gantt Linea Uno";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    .table {
+        display: table;
+        width: 101.5%;
+        margin-bottom: 0.01rem;
+    }
+
+    .tr {
+        display: table-row;
+    }
+
+    .td {
+        display: table-cell;
+        width: 150px;
+        /*height: 50px;*/
+        border: 1px solid #000;
+        text-align: center;
+        vertical-align: middle;
+    }
+
+    .rectangulo_azul {
+        width: 11px;
+        height: 9px;
+        /*border: 3px solid #428bca;*/
+        background: #428bca;
+    }
+
+    .rectangulo_amarillo {
+        width: 11px;
+        height: 9px;
+        /*border: 3px solid #428bca;*/
+        background: yellow;
+    }
+
+    .rectangulo_plomo {
+        width: 11px;
+        height: 8.5px;
+        /*border: 3px solid #428bca;*/
+        background: #BDBDBD;
+    }
+
+    .polig {
+        width: 20px;
+        height: 20px;
+        background: #444444;
+        font-family: arial;
+        font-weight: bold;
+        color: #EEEEEE;
+    }
+
+    .btn-default {
+        background-color: #006633;
+        color: #FFF;
+        border-color: black;
+    }
+</style>
+
+<script type="text/javascript">
+    function startTime() {
+        today = new Date();
+        //h = today.getHours();
+        //m = today.getMinutes();
+        //s = today.getSeconds();
+        //m = checkTime(m);
+        //s = checkTime(s);
+
+        //var now = new Date(), i = 0, f, sem = (new Date(now.getFullYear(), 0, 1).getDay() > 0) ? 1 : 0;
+        //while ((f = new Date(now.getFullYear(), 0, ++i)) < now) {
+        //    if (!f.getDay()) {
+        //        sem++;
+        //    }
+        //}
+        //document.getElementById('semana').innerHTML = 'SEMANA : ' + sem;
+
+        //document.getElementById('reloj').innerHTML = 'HORA : ' + h + ":" + m + ":" + s;
+        //t = setTimeout('startTime()', 500);
+    }
+    function checkTime(i) { if (i < 10) { i = "0" + i; } return i; }
+    window.onload = function () { startTime(); }
+</script>
+
+
+<script src="https://cdn.dhtmlx.com/edge/dhtmlx.js?v=6.3.7"></script>
+<script src="~/lib/dhtmlxgantt/dhtmlxgantt.js"></script>
+<script src="~/lib/dhtmlxgantt/ext/dhtmlxgantt_marker.js"></script>
+<script src="~/lib/dhtmlxgantt/ext/dhtmlxgantt_tooltip.js"></script>
+<script src="~/lib/dhtmlxgantt/locale/locale_es.js"></script>
+<link href="~/lib/dhtmlxgantt/dhtmlxgantt.css" rel="stylesheet" />
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+
+<body>
+
+    <div class="w3-container">
+
+        <div class="w3-row">
+            <div class="w3-col w3-container" style="width:82%;height:20px;color: #fff!important;background-color: #3A8C3A!important;font: bold 15px Arial Narrow,Helvetica;"><p>PEDIDOS DE TRABAJOS PROGRAMADOS</p></div>
+            <div class="w3-col" style="width:4.5%;height:20px;background-color: #BABEAE!important;font: bold 15px Arial Narrow,Helvetica;">
+                <button class="w3-btn" style="padding-bottom: 0px;padding-top: 0px;padding-left: 0px;padding-right: 0px;width :46px;background-color: #BABEAE!important;"><img src="~/img/ba_qt.png" alt="Administración Plataforma 2" style="width:15px;height:15px" onclick="filtrarData()"></button>
+            </div>
+            <div class="w3-col" style="width:4.5%;height:20px;background-color: #999E90!important;font: bold 15px Arial Narrow,Helvetica;">
+                <button class="w3-btn" style="padding-bottom: 0px;padding-top: 0px;padding-left: 0px;padding-right: 0px;width :46px;background-color: #999E90!important;" onclick="Disminuir()"><i class="w3-margin-center fa fa-minus"></i></button>
+            </div>
+            <div class="w3-col" style="text-align:center;vertical-align:middle;width:4.5%;height:20px;background-color: #BABEAE!important;font: bold 12px Arial Narrow,Helvetica;">
+                <p style="text-align: left;margin-bottom: 0rem;color: #BABEAE;font: bold 3px Arial Narrow,Helvetica;">>&nbsp</p>
+                <p id="Zoom" style="text-align: center;margin-bottom: 0rem;color: black;font: bold 11px Arial Narrow,Helvetica;">HORA</p>
+                <p style="text-align: left;margin-bottom: 0rem;color: #BABEAE;font: bold 3px Arial Narrow,Helvetica;">>&nbsp</p>
+            </div>
+            <div class="w3-col" style="width:4.5%;height:20px;background-color: #999E90!important;font: bold 15px Arial Narrow,Helvetica;">
+                <button class="w3-btn" style="padding-bottom: 0px;padding-top: 0px;padding-left: 0px;padding-right: 0px;width :46px;background-color: #999E90!important;" onclick="Aumentar()"><i class="w3-margin-center fa fa-plus"></i></button>
+            </div>
+
+        </div>
+        <div class="w3-row">
+            <div class="w3-col w3-container" style="vertical-align: middle;width:36%;height:30px;background-color: #DADBD7!important;font: bold 15px Arial Narrow,Helvetica;">
+                <p style="text-align: left;margin-bottom: 0rem;color: #DADBD7;font: bold 7px Arial Narrow,Helvetica;">>&nbsp</p>
+                <p id="semana" style="text-align: center;margin-bottom: 0rem;color: black;font: bold 15px Arial Narrow,Helvetica;"></p>
+                <p style="text-align: left;margin-bottom: 0rem;color: #DADBD7;font: bold 5px Arial Narrow,Helvetica;">>&nbsp</p>
+            </div>
+            <div class="w3-col w3-container" style="width:45%;height:30px;background-color: #DADBD7!important;font: bold 15px Arial Narrow,Helvetica;">
+                <p style="text-align: left;margin-bottom: 0rem;color: #DADBD7;font: bold 7px Arial Narrow,Helvetica;">>&nbsp</p>
+                <p id="reloj" style="text-align: center;margin-bottom: 0rem;color: black;font: bold 15px Arial Narrow,Helvetica;"></p>
+                <p style="text-align: left;margin-bottom: 0rem;color: #DADBD7;font: bold 5px Arial Narrow,Helvetica;">>&nbsp</p>
+            </div>
+            <div class="w3-col w3-red w3-container" style="width:19%;height:30px;background-color: #DADBD7!important;">
+                <p style="text-align: left;margin-bottom: 0rem;color: black;font: bold 7px Arial Narrow,Helvetica;">&nbsp<img class="rectangulo_azul">&nbsp&nbspEN PROCESO</p>
+                <p style="text-align: left;margin-bottom: 0rem;color: black;font: bold 7px Arial Narrow,Helvetica;">&nbsp<img class="rectangulo_plomo"> &nbsp&nbspPROGRAMADO</p>
+                <p style="text-align: left;margin-bottom: 0rem;color: black;font: bold 7px Arial Narrow,Helvetica;">&nbsp<img class="rectangulo_amarillo">&nbsp&nbspDURACION DE INCIDENTE</p>
+            </div>
+        </div>
+
+        <button onclick="myFunction('Demo1')" class="w3-btn w3-block w3-left-align" style="padding-bottom: 0px;padding-top: 0px;background-color: #006633!important;color: #fff!important;border-color: #006633;font: bold 15px Arial Narrow,Helvetica;"> DIAGRAMA GANTT</button>
+
+        @*<div class="col-md-10 col-md-pull-2">*@
+        <div class="col-md-12 col-md-pull-3" id="Demo1" style='width:2000px'>
+            <div id="ganttPT" style='height:425px;'> </div>
+        </div>
+        <button onclick="myFunction('Demo2')" class="w3-btn w3-block w3-left-align" style="padding-bottom: 1px;padding-top: 1px;background-color: #006633!important;color: #fff!important;border-color: #006633;font: bold 15px Arial Narrow,Helvetica;"> RECURSOS</button>
+        <div class="col-md-12 col-md-pull-3" id="Demo2" style='width:2000px'>
+            @*<p> Some other text..</p>*@
+            <div id="ganttRC" style='height:250px;'> </div>
+        </div>
+    </div>
+    @(Html.DevExtreme().Popup()
+                        .ID("filter-popup")
+                        .Width(420)
+                        .Height(240)
+                        .ShowTitle(true)
+                        .Title("Filtrar Datos")
+                        .Visible(false)
+                        .DragEnabled(false)
+                        .CloseOnOutsideClick(false)
+                        .OnShown("shownPupup")
+
+    )
+
+    @using (Html.DevExtreme().NamedTemplate("popup-f-template"))
+    {
+        @using (Html.BeginForm("ListadoPedidoTrabajoGantt", "Actividad", FormMethod.Post, new { id = "form-filter-gantt" }))
+        {
+            <div class="controls">
+                <div class="row mb-2">
+                    <div class="col-2 etiqueta"><label>PT:</label></div>
+                    <div class="col-10 controlField">
+                        @(Html.DevExtreme().TextBox()
+                                         .ID("txtNumPT")
+                                         .Width("100%")
+                                         .StylingMode(EditorStylingMode.Outlined)
+                        )
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-2 etiqueta"><label>Descripción:</label></div>
+                    <div class="col-10 controlField">
+                        @(Html.DevExtreme().TextBox()
+                                             .ID("txtDescPT")
+                                             .Width("100%")
+                                             .StylingMode(EditorStylingMode.Outlined)
+                        )
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-2 etiqueta"><label>Desde:</label></div>
+
+                    <div class="col-4 controlField">
+                        @(Html.DevExtreme().DateBox()
+                        .Type(DateBoxType.Date)
+                        .DisplayFormat("dd/MM/yyyy")
+                        .ShowClearButton(true)
+                        .ID("StartDate")
+                        .InvalidDateMessage("Ingrese una fecha!")
+                        .Value(DateTime.Now)
+                        )
+                    </div>
+                    <div class="col-2 etiqueta"><label>Hasta:</label></div>
+                    <div class="col-4 controlField">
+                        @(Html.DevExtreme().DateBox()
+                        .Type(DateBoxType.Date)
+                        .DisplayFormat("dd/MM/yyyy")
+                        .ShowClearButton(true)
+                        .ID("EndDate")
+                        .InvalidDateMessage("Ingrese una fecha!")
+                        .Value(DateTime.Now)
+                        )
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-12 mt-2 text-center">
+                        <button type="button" style="background-color: #006633 !important; width:40%;" class="btn btn-success" id="searchData" onclick="refreshGantt()"> Buscar</button>
+                        @*<button type="button" onclick="CancelInconv()" class="btn btn-success"> Cancelar</button>*@
+                    </div>
+                </div>
+            </div>
+
+
+        }
+    }
+    <script>
+        function myFunction(id) {
+            var x = document.getElementById(id);
+            if (x.style.display === "none") {
+                x.style.display = "block";
+            } else {
+                x.style.display = "none";
+            }
+        }
+        function zoomIn() {
+            gantt.ext.zoom.zoomIn();
+            ganttRec.ext.zoom.zoomIn();
+        }
+
+        function zoomOut() {
+            gantt.ext.zoom.zoomOut();
+            ganttRec.ext.zoom.zoomOut();
+
+        }
+
+        function Aumentar() {
+            var mensaje;
+            if (document.getElementById("Zoom").innerHTML == "HORA" || document.getElementById("Zoom").innerHTML === "") {
+                mensaje = "DIA";
+            } else {
+                if (document.getElementById("Zoom").innerHTML == "DIA") {
+                    mensaje = "SEMANA";
+                }
+                else {
+                    mensaje = "MES";
+                }
+            }
+            document.getElementById("Zoom").innerHTML = mensaje;
+            zoomOut()
+        }
+
+        function Disminuir() {
+            var mensaje;
+            if (document.getElementById("Zoom").innerHTML == "MES") {
+                mensaje = "SEMANA";
+            } else {
+                if (document.getElementById("Zoom").innerHTML == "SEMANA") {
+                    mensaje = "DIA";
+                }
+                else {
+                    mensaje = "HORA";
+                }
+            }
+            document.getElementById("Zoom").innerHTML = mensaje;
+            zoomIn()
+        }
+
+        function filtrarData() {
+            var popup = $("#filter-popup").dxPopup("instance");
+            popup.option("contentTemplate", $("#popup-f-template"));
+            popup.show();
+        }
+
+        function shownPupup() {
+            $("#txtNumPT").dxTextBox("instance").option("value", null);
+            $("#txtDescPT").dxTextBox("instance").option("value", null);
+            $("#StartDate").dxDateBox("instance").option("value", null);
+            $("#EndDate").dxDateBox("instance").option("value", null);
+        }
+
+        function refreshGantt() {
+            var pt = $("#txtNumPT").dxTextBox("instance").option("value");
+            var desc = $("#txtDescPT").dxTextBox("instance").option("value");
+            var fi = $("#StartDate").dxDateBox("instance").option("text");
+            var fn = $("#EndDate").dxDateBox("instance").option("text");
+
+            var popup = $("#filter-popup").dxPopup("instance");
+
+            var fechaIniValid = $("#StartDate").dxDateBox("instance").option("validationStatus");
+            var fechaFinValid = $("#EndDate").dxDateBox("instance").option("validationStatus");
+
+            if (fi !== '' && fn === '') alert('Ingrese la fecha fin')
+            else if(fi === '' && fn !== '') alert('Ingrese la fecha inicio')
+            else if (fechaIniValid === 'invalid' || fechaFinValid === 'invalid') alert('Debe ingresar fechas con un formato válido (dd/MM/yyy)')
+            else {
+                //RECARGAR GANTT PT HACIENDO USO DE AJAX
+                $.ajax(
+                    {
+                        type: 'POST',
+                        dataType: 'JSON',
+                        url: '/Actividad/ListadoPedidoTrabajoGantt',
+                        data: { pt: pt, desc: desc, fi: fi, fn: fn },
+                        success:
+                            function (response) {
+                                gantt.clearAll();
+                                if (response.data.length > 0) {
+                                    gantt.init("ganttPT");
+                                    gantt.parse(JSON.parse(JSON.stringify(response)), 'json');
+                                }
+                                popup.hide();
+                            },
+                        error:
+                            function (response) {
+                                alert("Error: " + response);
+                                popup.hide();
+                            }
+                    });
+
+                //RECARGAR GANTT RECURSO HACIENDO USO DE AJAX
+                $.ajax(
+                    {
+                        type: 'POST',
+                        dataType: 'JSON',
+                        url: '/Actividad/ListadoRecursoGantt',
+                        data: { pt: pt, desc: desc, fi: fi, fn: fn },
+                        success:
+                            function (response) {
+                                ganttRec.clearAll();
+                                if (response.data.length > 0) {
+                                    ganttRec.init("ganttRC");
+                                    ganttRec.parse(JSON.parse(JSON.stringify(response)), 'json');
+                                }
+                                popup.hide();
+                            },
+                        error:
+                            function (response) {
+                                alert("Error: " + response);
+                                popup.hide();
+                            }
+                    });
+            }
+        }
+
+    </script>
+
+    <style type="text/css">
+        .etiqueta {
+            text-align: left;
+            color: black;
+            font: bold 13px Arial Narrow,Helvetica;
+            padding-left: 0px;
+            padding-right: 0px;
+            align-self: center;
+        }
+
+        .controlField {
+            max-width: 100%;
+            text-align: left;
+            color: black;
+            font: bold 13px Arial Narrow,Helvetica;
+            padding-left: 0px;
+            padding-right: 0px;
+        }
+
+        .dx-toolbar {
+            height: 40px !important;
+        }
+
+        .dx-toolbar-item-content {
+            height: 100% !important;
+            padding-top: 4px !important;
+        }
+
+        .dx-texteditor.dx-editor-outlined .dx-placeholder:before {
+            padding: 10px 12px 10px;
+        }
+
+        .dx-texteditor.dx-editor-outlined .dx-texteditor-input {
+            padding: 9px 7px 9px;
+        }
+
+        .dx-texteditor-input {
+            font-size: 13px;
+        }
+    </style>
+
+
+</body>
+
+<script src="~/js/ganttConfig.js"></script>
+
